@@ -149,6 +149,8 @@ html[data-theme="dark"] .ic-moon{display:block}
 .filter-btn.active{background:var(--blue);color:#fff;border-color:transparent;box-shadow:0 10px 22px rgba(0,132,255,.35)}
 
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:24px}
+.card{cursor:pointer}
+.card:focus-visible{outline:none;box-shadow:var(--ring),var(--shadow)}
 .card{border-radius:var(--r-lg);overflow:hidden;display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.2,.9,.3,1.2),box-shadow .35s}
 .card:hover{transform:translateY(-8px);box-shadow:var(--shadow)}
 .card.hide{display:none}
@@ -261,6 +263,32 @@ html[data-theme="dark"] .field input:focus,html[data-theme="dark"] .field textar
 .q-del:hover{background:#E5484D;color:#fff}
 .drawer-foot{padding:16px 20px 20px;border-top:1px solid rgba(128,140,160,.25)}
 
+.modal-backdrop{
+  position:fixed;inset:0;z-index:110;background:rgba(10,14,20,.55);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  display:grid;place-items:center;padding:22px;
+  opacity:0;visibility:hidden;transition:.3s;
+}
+.modal-backdrop.open{opacity:1;visibility:visible}
+.modal{
+  width:min(660px,100%);max-height:90vh;overflow-y:auto;border-radius:26px;
+  position:relative;transform:translateY(26px) scale(.96);
+  transition:transform .4s cubic-bezier(.2,.9,.3,1.35);
+}
+.modal-backdrop.open .modal{transform:none}
+.modal-close{position:absolute;top:14px;inset-inline-end:14px;z-index:3;background:rgba(255,255,255,.88);color:#1B2430;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+.modal-close:hover{background:#fff;color:var(--blue)}
+.modal-media{height:250px;overflow:hidden}
+.modal-media img{width:100%;height:250px;object-fit:cover;display:block}
+.modal-visual{width:100%;height:250px;background-size:cover;background-position:center;position:relative}
+.modal-visual::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.28))}
+.modal-body{padding:22px 26px 26px}
+.modal-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.modal-top h2{font-size:1.45rem;font-weight:800}
+.modal-specs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;background:rgba(0,132,255,.06);border:1px solid rgba(0,132,255,.15);border-radius:var(--r-md);padding:14px 16px}
+.modal-foot{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:16px;border-top:1px dashed rgba(128,140,160,.35);flex-wrap:wrap}
+.modal-foot .price{font-size:1.05rem}
+
 .toast{
   position:fixed;bottom:26px;left:50%;transform:translate(-50%,140%);
   z-index:120;padding:12px 24px;border-radius:999px;font-weight:700;font-size:.92rem;
@@ -288,6 +316,8 @@ html[data-theme="dark"] .field input:focus,html[data-theme="dark"] .field textar
   .about-photo{height:320px}
 }
 @media (max-width:560px){
+  .modal-specs{grid-template-columns:1fr}
+  .modal-media,.modal-media img,.modal-visual{height:190px}
   .hero-stats{gap:20px}
   .hero-stats strong{font-size:1.5rem}
   .field-row{flex-direction:column;gap:0}

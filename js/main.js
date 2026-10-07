@@ -73,7 +73,7 @@ function cardHTML(p) {
   const media = p.img
     ? `<img class="card-img" src="${p.img}" alt="${esc(p.name)}" loading="lazy">`
     : `<div class="card-visual ${esc(visual)}"></div>`;
-  return `<article class="card glass reveal" data-cat="${esc(p.cat)}">
+  return `<article class="card glass reveal" data-id="${esc(p.id)}" data-cat="${esc(p.cat)}" tabindex="0" role="button" aria-label="تفاصيل ${esc(p.name)}">
     ${media}
     <div class="card-body">
       <div class="card-top"><h3>${esc(p.name)}</h3><span class="tag ${p.cat === "natural" ? "tag-gold" : ""}">${CAT_LABEL[p.cat] || "منتج"}</span></div>
@@ -168,17 +168,73 @@ function renderCart() {
 }
 renderCart();
 
-$("#productGrid").addEventListener("click", e => {
-  const btn = e.target.closest(".add-btn");
-  if (!btn) return;
-  const name = btn.dataset.name;
+function addToCart(name, btn) {
   const found = cart.find(c => c.name === name);
   if (found) { found.qty += 10; showToast("تمت زيادة الكمية: " + name); }
   else { cart.push({ name, qty: 10, unit: "م³" }); showToast("أُضيف إلى السلة: " + name); }
   renderCart();
-  btn.classList.add("added");
-  btn.textContent = "تمت الإضافة ✓";
-  setTimeout(() => { btn.classList.remove("added"); btn.textContent = "أضف للعرض"; }, 1500);
+  if (btn) {
+    btn.classList.add("added");
+    btn.textContent = "تمت الإضافة ✓";
+    setTimeout(() => { btn.classList.remove("added"); btn.textContent = "أضف للعرض"; }, 1500);
+  }
+}
+
+const modalBackdrop = $("#modalBackdrop");
+const modalContent = $("#modalContent");
+
+function closeModal() { modalBackdrop.classList.remove("open"); }
+$("#modalClose").addEventListener("click", closeModal);
+modalBackdrop.addEventListener("click", e => { if (e.target === modalBackdrop) closeModal(); });
+addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+function openProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const visual = p.visual || CAT_VISUAL[p.cat] || "v-gravel";
+  const media = p.img
+    ? `<img src="${p.img}" alt="${esc(p.name)}">`
+    : `<div class="modal-visual ${esc(visual)}"></div>`;
+  modalContent.innerHTML = `
+    <div class="modal-media">${media}</div>
+    <div class="modal-body">
+      <div class="modal-top">
+        <span class="tag ${p.cat === "natural" ? "tag-gold" : ""}">${CAT_LABEL[p.cat] || "منتج"}</span>
+        <h2>${esc(p.name)}</h2>
+      </div>
+      <p class="desc">${esc(p.desc || "لا يوجد وصف إضافي.")}</p>
+      <ul class="specs modal-specs">
+        <li><b>المقاس:</b> ${esc(p.size || "—")}</li>
+        <li><b>الاستخدام:</b> ${esc(p.use || "—")}</li>
+        <li><b>القسم:</b> ${CAT_LABEL[p.cat] || "—"}</li>
+        <li><b>التوصيل:</b> متوفر للكميات داخل الولاية والولايات المجاورة</li>
+      </ul>
+      <div class="modal-foot">
+        <span class="price">${esc(p.price || "السعر عند الطلب")}</span>
+        <button class="btn btn-primary" data-modal-add="${esc(p.name)}">أضف للعرض</button>
+      </div>
+    </div>`;
+  modalBackdrop.classList.add("open");
+}
+
+$("#productGrid").addEventListener("click", e => {
+  const addBtn = e.target.closest(".add-btn");
+  if (addBtn) { addToCart(addBtn.dataset.name, addBtn); openDrawer(); return; }
+  const card = e.target.closest(".card");
+  if (card) openProduct(card.dataset.id);
+});
+
+$("#productGrid").addEventListener("keydown", e => {
+  if (e.key !== "Enter") return;
+  const card = e.target.closest(".card");
+  if (card && !e.target.closest(".add-btn")) openProduct(card.dataset.id);
+});
+
+modalContent.addEventListener("click", e => {
+  const btn = e.target.closest("[data-modal-add]");
+  if (!btn) return;
+  addToCart(btn.dataset.modalAdd, null);
+  closeModal();
   openDrawer();
 });
 
