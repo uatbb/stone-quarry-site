@@ -216,7 +216,7 @@ $("#productForm").addEventListener("submit", e => {
     Object.assign(p, data);
     showToast("تم حفظ التعديلات");
   } else {
-    products.push({ id: "p" + Date.now(), ...data });
+    products.push({ id: "u" + Date.now(), ...data });
     showToast("تمت إضافة المنتج");
   }
 
@@ -246,13 +246,17 @@ $("#clearBtn").addEventListener("click", () => {
   showToast("تم حذف جميع المنتجات");
 });
 
-$("#restoreBtn").addEventListener("click", () => {
-  if (!confirm("استعادة المنتجات الأصلية ستحذف تعديلاتك الحالية. متابعة؟")) return;
-  sqResetProducts();
-  products = sqLoadProducts();
-  resetForm();
+const isDefaultId = id => /^p\d{1,3}$/.test(id);
+
+$("#removeDefaultsBtn").addEventListener("click", () => {
+  const defaults = products.filter(p => isDefaultId(p.id));
+  if (!defaults.length) { showToast("لا توجد منتجات أصلية للحذف"); return; }
+  if (!confirm("سيتم حذف " + defaults.length + " من المنتجات الأصلية، مع الاحتفاظ بالمنتجات التي أضفتها أنت. متابعة؟")) return;
+  products = products.filter(p => !isDefaultId(p.id));
+  persist();
+  if (editingId && isDefaultId(editingId)) resetForm();
   render();
-  showToast("تمت استعادة المنتجات الأصلية");
+  showToast("تم حذف المنتجات الأصلية");
 });
 
 $("#changePassBtn").addEventListener("click", () => {
