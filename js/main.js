@@ -35,7 +35,15 @@ const revealer = new IntersectionObserver(entries => {
     if (en.isIntersecting) { en.target.classList.add("in"); revealer.unobserve(en.target); }
   });
 }, { threshold: 0.12 });
-$$(".reveal").forEach((el, i) => { el.style.transitionDelay = (i % 4) * 70 + "ms"; revealer.observe(el); });
+
+function observeReveals(root = document) {
+  $$(".reveal", root).forEach((el, i) => {
+    if (el.classList.contains("in")) return;
+    el.style.transitionDelay = (i % 4) * 70 + "ms";
+    revealer.observe(el);
+  });
+}
+observeReveals();
 
 const counter = new IntersectionObserver(entries => {
   entries.forEach(en => {
@@ -52,16 +60,58 @@ const counter = new IntersectionObserver(entries => {
 }, { threshold: 0.6 });
 $$("[data-count]").forEach(el => counter.observe(el));
 
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const CAT_LABEL = { crush: "ركام", natural: "طبيعي", powder: "مطحون" };
+const CAT_VISUAL = { crush: "v-gravel", natural: "v-boulder", powder: "v-powder" };
+
+let products = sqLoadProducts();
+let currentFilter = "all";
+
+function cardHTML(p) {
+  const visual = p.visual || CAT_VISUAL[p.cat] || "v-gravel";
+  const media = p.img
+    ? `<img class="card-img" src="${p.img}" alt="${esc(p.name)}" loading="lazy">`
+    : `<div class="card-visual ${esc(visual)}"></div>`;
+  return `<article class="card glass reveal" data-cat="${esc(p.cat)}">
+    ${media}
+    <div class="card-body">
+      <div class="card-top"><h3>${esc(p.name)}</h3><span class="tag ${p.cat === "natural" ? "tag-gold" : ""}">${CAT_LABEL[p.cat] || "منتج"}</span></div>
+      <p class="desc">${esc(p.desc)}</p>
+      <ul class="specs"><li><b>المقاس:</b> ${esc(p.size || "—")}</li><li><b>الاستخدام:</b> ${esc(p.use || "—")}</li></ul>
+      <div class="card-foot">
+        <span class="price">${esc(p.price || "السعر عند الطلب")}</span>
+        <button class="btn btn-outline add-btn" data-name="${esc(p.name)}">أضف للعرض</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+function renderProducts() {
+  const grid = $("#productGrid");
+  const empty = $("#emptyState");
+  const list = products.filter(p => currentFilter === "all" || p.cat === currentFilter);
+  grid.innerHTML = list.map(cardHTML).join("");
+
+  if (!products.length) {
+    empty.hidden = false;
+    empty.innerHTML = 'لا توجد منتجات حالياً — يمكن إضافتها من <a href="admin.html">صفحة الإدارة</a>.';
+  } else if (!list.length) {
+    empty.hidden = false;
+    empty.textContent = "لا توجد منتجات في هذا القسم.";
+  } else {
+    empty.hidden = true;
+  }
+  observeReveals(grid);
+}
+renderProducts();
+
 $$("#filters .filter-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     $$("#filters .filter-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    const f = btn.dataset.filter;
-    $$("#productGrid .card").forEach(card => {
-      const show = f === "all" || card.dataset.cat === f;
-      card.classList.toggle("hide", !show);
-      if (show) { card.classList.remove("in"); requestAnimationFrame(() => card.classList.add("in")); }
-    });
+    currentFilter = btn.dataset.filter;
+    renderProducts();
   });
 });
 
@@ -103,8 +153,8 @@ function renderCart() {
     const row = document.createElement("div");
     row.className = "q-item";
     row.innerHTML = `
-      <span class="q-name">${item.name}</span>
-      <input class="q-qty" type="number" min="0" step="1" value="${item.qty}" aria-label="الكمية">
+      <span class="q-name">${esc(item.name)}</span>
+      <input class="q-qty" type="number" min="0" step="1" value="${+item.qty || 0}" aria-label="الكمية">
       <select class="q-qty q-unit" aria-label="الوحدة" style="width:62px">
         ${UNITS.map(u => `<option ${u === item.unit ? "selected" : ""}>${u}</option>`).join("")}
       </select>
@@ -118,18 +168,18 @@ function renderCart() {
 }
 renderCart();
 
-$$(".add-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const name = btn.dataset.name;
-    const found = cart.find(c => c.name === name);
-    if (found) { found.qty += 10; showToast("تمت زيادة الكمية: " + name); }
-    else { cart.push({ name, qty: 10, unit: "م³" }); showToast("أُضيف إلى السلة: " + name); }
-    renderCart();
-    btn.classList.add("added");
-    btn.textContent = "تمت الإضافة ✓";
-    setTimeout(() => { btn.classList.remove("added"); btn.textContent = "أضف للعرض"; }, 1500);
-    openDrawer();
-  });
+$("#productGrid").addEventListener("click", e => {
+  const btn = e.target.closest(".add-btn");
+  if (!btn) return;
+  const name = btn.dataset.name;
+  const found = cart.find(c => c.name === name);
+  if (found) { found.qty += 10; showToast("تمت زيادة الكمية: " + name); }
+  else { cart.push({ name, qty: 10, unit: "م³" }); showToast("أُضيف إلى السلة: " + name); }
+  renderCart();
+  btn.classList.add("added");
+  btn.textContent = "تمت الإضافة ✓";
+  setTimeout(() => { btn.classList.remove("added"); btn.textContent = "أضف للعرض"; }, 1500);
+  openDrawer();
 });
 
 $("#sendQuote").addEventListener("click", () => {
